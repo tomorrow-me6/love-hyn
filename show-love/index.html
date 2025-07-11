@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表白</title>
+    <style>
+    /* 压缩和优化CSS */
+    body{font-family:Arial,sans-serif;font-size:16px;line-height:1.5;margin:0;padding:0;width:100%;height:100%;background-color:#e7e7d8;overflow:hidden}
+    #container{width:100%;height:100vh;display:flex;justify-content:center;align-items:center;flex-direction:column}
+    .button_group{text-align:center;margin-top:10px;position:relative}
+    .but_common{border:none;border-radius:8px;width:65px;height:30px;color:#fff;font-size:14px}
+    .but_common:hover{cursor:pointer}
+    #but_yes{background-color:#e66ac0}
+    #but_no{background-color:#6590ee}
+    #loading-tips{font-weight: bold;}
+    .music-control{position:fixed;right:20px;top:20px;width:40px;height:40px;border-radius:50%;background-color:rgba(255,255,255,.7);display:flex;justify-content:center;align-items:center;cursor:pointer;z-index:100;box-shadow:0 2px 5px rgba(0,0,0,.2)}
+    .music-icon{font-style:normal;font-size:20px}
+    .effects-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+    .heart{position:absolute;width:30px;height:30px;bottom:-30px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'><path fill='%23ff5a8e' d='M25 39.7l-.6-.5C11.5 28.7 8 25 8 19c0-5 4-9 9-9 4.1 0 6.4 2.3 8 4.1 1.6-1.8 3.9-4.1 8-4.1 5 0 9 4 9 9 0 6-3.5 9.7-16.4 20.2l-.6.5z'/></svg>");background-size:contain;background-repeat:no-repeat;animation:float-up 5s linear infinite}
+    .firework{position:absolute;width:10px;height:10px;background-color:white;border-radius:50%;animation:rise 1s ease-out;z-index:9;box-shadow:0 0 10px white}
+    .special-firework{animation:special-rise 1.2s ease-out;z-index:20;box-shadow:0 0 20px #ff5a8e,0 0 40px #ff5a8e}
+    .particle{position:absolute;width:6px;height:6px;background-color:var(--particle-color,#ff5a8e);border-radius:50%;animation:explode 2s ease-out forwards;z-index:9;box-shadow:0 0 5px var(--particle-color,#ff5a8e)}
+    .special-particle{position:absolute;width:8px;height:8px;border-radius:50%;animation:special-explode 3s cubic-bezier(.11,.67,.43,.98) forwards;z-index:20;box-shadow:0 0 10px currentColor}
+    .flash{position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(255,255,255,.6);z-index:19;animation:flash .8s ease-out forwards;pointer-events:none}
+    .message-container{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:bold;color:#ff5a8e;text-shadow:0 0 10px rgba(255,90,142,.8);z-index:30;text-align:center;opacity:0;animation:message-appear 4s ease-out forwards;pointer-events:none;padding:20px;background-color:rgba(255,255,255,.2);border-radius:10px;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:opacity 1s ease}
+    .custom-dialog{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,.5);justify-content:center;align-items:center;z-index:1000}
+    .dialog-content{background-color:white;padding:30px;border-radius:15px;box-shadow:0 0 20px rgba(0,0,0,.3);text-align:center;max-width:80%;animation:dialog-appear .3s ease-out forwards;background:linear-gradient(135deg,#fce4ec,#f8bbd0);border:2px solid #f06292}
+    .dialog-message{font-size:22px;margin-bottom:20px;color:#e91e63;font-weight:bold}
+    .dialog-button{background-color:#e91e63;color:white;border:none;padding:10px 25px;border-radius:25px;cursor:pointer;font-size:16px;transition:background-color .3s}
+    .dialog-button:hover{background-color:#c2185b}
+    @keyframes float-up{0%{transform:translateY(0) scale(.2) rotate(0deg);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-100vh) scale(1) rotate(360deg);opacity:0}}
+    @keyframes rise{0%{transform:translateY(100vh);opacity:0}50%{opacity:1}100%{transform:translateY(0);opacity:0}}
+    @keyframes special-rise{0%{transform:translateY(100vh) scale(.5);opacity:0}50%{opacity:1}90%{transform:translateY(0) scale(1.5);opacity:1}100%{transform:translateY(0) scale(2);opacity:0}}
+    @keyframes explode{0%{transform:rotate(var(--angle,0deg)) translateX(0);opacity:1}100%{transform:rotate(var(--angle,0deg)) translateX(100px);opacity:0}}
+    @keyframes special-explode{0%{transform:rotate(var(--angle,0deg)) translateX(0);opacity:1}70%{opacity:1}100%{transform:rotate(var(--angle,0deg)) translateX(var(--distance,200px));opacity:0}}
+    @keyframes flash{0%{opacity:1}100%{opacity:0}}
+    @keyframes message-appear{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}30%{transform:translate(-50%,-50%) scale(1)}90%{opacity:1}100%{opacity:1}}
+    @keyframes dialog-appear{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+    
+    /* 加载动画样式 */
+    #loading-screen{position:fixed;top:0;left:0;width:100%;height:100%;background-color:#e7e7d8;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;transition:opacity 0.5s ease-out}
+    .loading-heart{width:80px;height:80px;position:relative;animation:loading-heart-beat 1.2s infinite}
+    .loading-heart:before,.loading-heart:after{content:"";background-color:#ff5a8e;width:40px;height:60px;border-radius:40px 40px 0 0;position:absolute;top:0}
+    .loading-heart:before{transform:rotate(-45deg);transform-origin:100% 100%;left:20px}
+    .loading-heart:after{transform:rotate(45deg);transform-origin:0% 100%;right:20px}
+    .loading-text{font-size:24px;font-weight:bold;color:#e66ac0;margin-top:40px;letter-spacing:1px;position:relative}
+    .loading-dots{display:inline-block;width:70px}
+    .loading-dot{display:inline-block;opacity:0;animation:loading-dot-appear 1.8s infinite;margin:0 2px;font-size:24px;color:#e66ac0}
+    .loading-dot:nth-child(2){animation-delay:0.6s}
+    .loading-dot:nth-child(3){animation-delay=1.2s}
+    .loading-progress{width:200px;height:6px;background-color:rgba(255,255,255,0.5);border-radius:10px;margin-top:20px;overflow:hidden;position:relative}
+    .loading-progress-bar{width:0%;height:100%;background:linear-gradient(90deg,#ff5a8e,#e66ac0);border-radius:10px;position:absolute;transition:width 0.3s ease-out}
+    .loading-tips{margin-top:20px;font-size:14px;color:#666;text-align:center;max-width:80%;font-style:italic}
+    @keyframes loading-heart-beat{0%{transform:scale(0.8)}50%{transform:scale(1)}100%{transform:scale(0.8)}}
+    @keyframes loading-dot-appear{0%,100%{opacity:0}50%{opacity:1}}
+    </style>
+    <!-- 添加情书动画相关资源 -->
+    <link type="text/css" rel="stylesheet" href="./Love_files/default.css">
+    <script type="text/javascript" src="./Love_files/jquery.min.js"></script>
+    <script type="text/javascript" src="./Love_files/jscex.min.js"></script>
+    <script type="text/javascript" src="./Love_files/jscex-parser.js"></script>
+    <script type="text/javascript" src="./Love_files/jscex-jit.js"></script>
+    <script type="text/javascript" src="./Love_files/jscex-builderbase.min.js"></script>
+    <script type="text/javascript" src="./Love_files/jscex-async.min.js"></script>
+    <script type="text/javascript" src="./Love_files/jscex-async-powerpack.min.js"></script>
+    <script type="text/javascript" src="./Love_files/functions.js" charset="utf-8"></script>
+    <script type="text/javascript" src="./Love_files/love.js" charset="utf-8"></script>
+</head>
+<body>
+    <!-- 加载动画 -->
+    <div id="loading-screen">
+        <div class="loading-heart"></div>
+        <div class="loading-text">正在准备素材
+            <span class="loading-dots">
+                <span class="loading-dot">.</span>
+                <span class="loading-dot">.</span>
+                <span class="loading-dot">.</span>
+            </span>
+        </div>
+        <div class="loading-progress">
+            <div id="loading-progress-bar" class="loading-progress-bar"></div>
+        </div>
+        <div class="loading-tips" id="loading-tips">第一次干这个，有点紧张...</div>
+    </div>
+
+    <!-- 选择界面 -->
+    <div id="container">
+        <div class="container_inner">
+            <div>
+                <h4 style="margin-left:3px;text-align:center">小姐姐我观察你好久了！！！</h4>
+                <div>
+                    <img id="image" src="./imgs/001.png" alt="" style="width:200px;height:200px;margin:0 auto;display:block">  
+                </div>
+            </div>
+            <h4 style="text-align:center" id="duix">可以做我对象吗？</h4>
+            <div class="button_group">
+                <button id="but_yes" class="but_common">可以</button>
+                <button id="but_no" class="but_common">不要</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 自定义对话框 -->
+    <div id="customDialog" class="custom-dialog">
+        <div class="dialog-content">
+            <div class="dialog-message">太好了，我们在一起吧</div>
+            <button id="dialogClose" class="dialog-button">确定</button>
+        </div>
+    </div>
+    
+    <!-- 添加音乐播放器 -->
+    <audio id="bgMusic" preload="none">
+        <source src="./imgs/bg_music.mp3" type="audio/mp3">
+    </audio>
+    
+    <!-- 音乐控制按钮 -->
+    <div id="musicControl" class="music-control">
+        <i id="musicIcon" class="music-icon">🎵</i>
+    </div>
+    
+    <!-- 心形动画和烟花容器 -->
+    <div id="effects" class="effects-container"></div>
+    
+    <!-- 情书动画 -->
+    <div id="main" style="display:none">
+        <div id="error">亲，您使用的浏览器无法支持即将显示的内容，请换成谷歌(<a href="http://www.google.cn/chrome/intl/zh-CN/landing_chrome.html?hl=zh-CN&brand=CHMI">Chrome</a>)或者火狐(<a href="http://firefox.com.cn/download/">Firefox</a>)浏览器哟~</div>
+        <div id="wrap">
+            <div id="text">
+                <div id="code">
+                    <span class="say">一定要爱你</span><br><br>
+                    <span class="say">我知道你是一个天真善良温柔的女孩</span><br>
+                    <span class="say">真的希望自己能够配上你</span><br>
+                    <span class="say">如果你能给我机会让我好好的爱你</span><br>
+                    <span class="say">真的只想真心真意对你说</span><br>
+                    <br>
+                    <span class="say">我爱你一定爱到花都开了 鸟儿把歌唱</span><br>
+                    <span class="say">爱到牛郎织女为我们点头</span><br>
+                    <span class="say">爱到花儿绽放鸟儿成群 把我们环绕</span><br>
+                    <span class="say">爱到每道彩虹映出你的美</span><br>
+                    <br>
+                    <span class="say">我爱你一定爱到海枯石烂 永远不后悔</span><br>
+                    <span class="say">爱到来生来世也会说无悔</span><br>
+                    <span class="say">就把这首动听的歌唱给心爱的女孩</span><br>
+                    <span class="say">真的希望你能给我个机会</span><br>
+                    <span class="say">让我去爱你</span><br>
+                    <br>
+                    <span class="say"><span class="space"></span> -- 你的，太阳。</span>
+                </div>
+            </div>
+            <div id="clock-box">
+                <a href="https://sunguoqi.com" target="_blank">星星</a> 和 <a href="https://sunguoqi.com" target="_blank">月亮</a> 在一起的
+                <div id="clock"></div>
+            </div>
+            <canvas id="canvas" width="1100" height="680"></canvas>
+        </div>
+    </div>
+    
+    <script>
+    // 加载动画
+    const loadingScreen = document.getElementById('loading-screen');
+    const loadingProgressBar = document.getElementById('loading-progress-bar');
+    const loadingTips = document.getElementById('loading-tips');
+    
+    // 添加隐藏的快速加载功能
+    let quickLoadClickCount = 0;
+    let lastClickTime = 0;
+    const CLICK_TIMEOUT = 500; // 500毫秒内的点击才算连续点击
+    
+    // 定义一个变量来标记用户是否已交互
+    let userInteracted = false;
+    // 音频上下文，用于检测和处理音频播放状态
+    let audioContext;
+
+    // 尝试在用户首次交互时播放音乐
+    function tryPlayMusic() {
+        if (userInteracted) return; // 如果已经交互过了，不再执行
+        
+        userInteracted = true;
+        const bgMusic = document.getElementById("bgMusic");
+        
+        // 确保音乐源已设置
+        if (!bgMusic.getAttribute('src')) {
+            bgMusic.setAttribute('src', './imgs/bg_music.mp3');
+        }
+        
+        // 尝试播放
+        bgMusic.play().then(() => {
+            document.getElementById('musicIcon').textContent = '🎵';
+            window.musicPlaying = true;
+        }).catch(e => console.log('尝试播放音乐失败:', e));
+    }
+    
+    // 监听各种用户交互事件以启动音频
+    document.addEventListener('click', tryPlayMusic, {once: true});
+    document.addEventListener('touchstart', tryPlayMusic, {once: true});
+    document.addEventListener('keydown', tryPlayMusic, {once: true});
+    
+    loadingScreen.addEventListener('click', (e) => {
+        const currentTime = new Date().getTime();
+        
+        // 如果距离上次点击超过500毫秒，重置计数
+        if (currentTime - lastClickTime > CLICK_TIMEOUT) {
+            quickLoadClickCount = 1;
+        } else {
+            quickLoadClickCount++;
+        }
+        
+        lastClickTime = currentTime;
+
+        // 如果连续点击三次，直接完成加载
+        if (quickLoadClickCount >= 3) {
+            // 清除所有定时器
+            clearInterval(tipInterval);
+            clearInterval(loadingInterval);
+            
+            // 直接完成加载
+            loadingProgressBar.style.width = '100%';
+            
+            // 延迟一小段时间后移除加载界面
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 500);
+            }, 300);
+        }
+    });
+    
+    // 加载提示语
+    const loadingTipsArray = [
+        "知道你即将面对什么嘛",
+        "趁现在还来得及！",
+        "...",
+        "图片准备中...",
+        "音乐加载中...",
+        "正在寻找找吓人素材...",
+        "成功率正在计算...",
+        "前方高能！！！",
+        "3！",
+        "2！！",
+        "1！！！",
+        "来不及了!",
+        "快跑!",
+        ".",
+        "..",
+        "...",
+        "咦，还不跑(๑•̌.•̑๑)ˀ̣ˀ̣",
+        "...",
+        "你还在那吗...",
+        "你难道没有事情要做吗？",
+        "从刚才到现在一直盯着我...",
+        "我知道了(。・`ω´・)",
+        "你喜欢我(●'◡'●)",
+        "你说什么？",
+        "听不懂╮( •́ω•̀ )╭",
+        "在这儿我说了算ƪ(˘⌣˘)ʃ",
+        "嘿嘿o(*≧▽≦)ツ ~ ┴┴",
+    ];
+    
+    // 顺序显示提示语
+    let tipIndex = 0;
+    let minLoadingTime = loadingTipsArray.length * 930; // 至少显示这么长时间（每条提示1秒）
+    let startTime = Date.now();
+    
+    // 顺序更新提示语
+    const tipInterval = setInterval(() => {
+        loadingTips.textContent = loadingTipsArray[tipIndex];
+        tipIndex++;
+        // 如果已经显示完所有提示语，重新开始
+        if (tipIndex >= loadingTipsArray.length) {
+            tipIndex = 0;
+        }
+    }, 1000); // 每秒更新一次提示语
+    
+    // 模拟加载进度
+    let progress = 0;
+    const loadingInterval = setInterval(() => {
+        // 计算已经经过的时间
+        const elapsedTime = Date.now() - startTime;
+        
+        // 根据已经经过的时间计算进度条比例
+        if (elapsedTime < minLoadingTime) {
+            // 如果没到最小加载时间，缓慢增加进度，确保不会超过95%
+            progress = (elapsedTime / minLoadingTime) * 95;
+        } else {
+            // 超过最小时间后快速完成剩余进度
+            progress += (100 - progress) / 10;
+        }
+        
+        // 如果进度达到100%，完成加载
+        if (progress >= 99.5) {
+            progress = 100;
+            clearInterval(loadingInterval);
+            clearInterval(tipInterval);
+            
+            // 完成加载后淡出加载屏幕
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 500);
+            }, 500);
+        }
+        
+        // 更新加载进度条
+        loadingProgressBar.style.width = `${progress}%`;
+    }, 100); // 更频繁地更新进度条，使其更流畅
+
+    // 延迟加载非必要资源
+    window.addEventListener('load', function() {
+        // 图片数组 - 仅预加载首张图片，其他图片延迟加载
+        const dogImages = ['imgs/001.png', 'imgs/002.png', 'imgs/003.png', 'imgs/004.png', 'imgs/005.png'];
+        // 预加载图片资源
+        setTimeout(() => {
+            dogImages.forEach((src, index) => {
+                if (index > 0) { // 第一张已经在页面中加载了
+                    const img = new Image();
+                    img.src = src;
+                }
+            });
+            // 预加载结束图片
+            const endImg = new Image();
+            endImg.src = 'imgs/ok.png';
+        }, 2000); // 2秒后开始预加载其他图片
+
+        // 字符数组
+        const textImages = ['要不再想想？', '你认真的吗？', '我会伤心的...', '不允许选这个'];
+        
+        // DOM元素引用
+        const image = document.getElementById('image');
+        const changeBtn = document.getElementById("but_no");
+        const yesBtn = document.getElementById("but_yes");
+        const dx = document.getElementById("duix");
+        const bgMusic = document.getElementById("bgMusic");
+        const musicControl = document.getElementById("musicControl");
+        const musicIcon = document.getElementById("musicIcon");
+        const effectsContainer = document.getElementById("effects");
+        const customDialog = document.getElementById('customDialog');
+        const dialogClose = document.getElementById('dialogClose');
+
+        // 状态变量
+        let currentTextIndex = 0;
+        let currentIndex = 0;
+        let currentScale = 1; // 记录按钮放大比例
+        let clickCount = 0; // 记录点击次数
+        let musicPlaying = window.musicPlaying || false; // 使用全局状态或设为false
+        let timerId;
+
+        // 页面加载完成后准备背景音乐
+        if (!bgMusic.getAttribute('src')) {
+            bgMusic.setAttribute('src', './imgs/bg_music.mp3');
+        }
+
+        // 延迟加载音乐控制按钮事件
+        musicControl.addEventListener('click', function() {
+            // 确保音乐源已设置
+            if (!bgMusic.getAttribute('src')) {
+                bgMusic.setAttribute('src', './imgs/bg_music.mp3');
+            }
+            toggleMusic();
+        });
+
+        // 按钮事件绑定 - 使用事件委托减少事件监听器数量
+        changeBtn.addEventListener('click', handleNoClick);
+        yesBtn.addEventListener('click', handleYesClick);
+        dialogClose.addEventListener('click', () => customDialog.style.display = 'none');
+
+        // "不要"按钮点击处理
+        function handleNoClick() {
+            // 切换图片
+            if (currentIndex < dogImages.length - 1) {
+                currentIndex = (currentIndex + 1) % dogImages.length;
+            }
+            image.src = dogImages[currentIndex];
+
+            // 文字切换
+            if (currentTextIndex < textImages.length - 1) {
+                currentTextIndex = (currentTextIndex + 1) % textImages.length;
+            }
+            changeBtn.style.width = '100px';
+            changeBtn.innerText = textImages[currentTextIndex];
+
+            // 按钮放大效果
+            currentScale *= 1.5;
+            yesBtn.style.width = `${yesBtn.offsetWidth * 1.5}px`;
+            yesBtn.style.height = `${yesBtn.offsetHeight * 1.5}px`;
+            yesBtn.style.fontSize = `${parseFloat(getComputedStyle(yesBtn).fontSize) * 1.5}px`;
+
+            // 统计点击次数
+            clickCount++;
+            if (clickCount >= 5) {
+                changeBtn.style.position = "absolute";
+                changeBtn.style.transition = "top 0.3s, left 0.3s";
+                changeBtn.style.pointerEvents = "none";
+                startMoving();
+            }
+        }
+
+        // "可以"按钮点击处理
+        function handleYesClick() {
+            // 显示自定义对话框
+            customDialog.style.display = 'flex';
+            
+            clearInterval(timerId);
+            yesBtn.style.pointerEvents = "none";
+            changeBtn.style.pointerEvents = "none";
+            
+            // 恢复"可以"按钮到正常大小
+            yesBtn.style.width = "65px";
+            yesBtn.style.height = "30px";
+            yesBtn.style.fontSize = "14px";
+            
+            // 加载并播放欢乐音乐
+            if(!bgMusic.getAttribute('src')) {
+                bgMusic.setAttribute('src', './imgs/happy_music.mp3');
+            } else {
+                bgMusic.setAttribute('src', './imgs/happy_music.mp3');
+            }
+            
+            bgMusic.play().catch(e => console.log('音频播放失败:', e));
+            musicPlaying = true;
+            musicIcon.textContent = '🎵';
+            
+            image.src = 'imgs/ok.png';
+            dx.innerText = "宝宝亲亲";
+            
+            // 优化特效 - 根据设备性能调整效果
+            const isLowPerformance = window.navigator.connection && 
+                (window.navigator.connection.effectiveType === 'slow-2g' || 
+                 window.navigator.connection.effectiveType === '2g');
+            
+            createHeartAnimation(isLowPerformance);
+            createFireworks(isLowPerformance);
+            
+            // 显示情书动画
+            customDialog.style.display = 'none';
+            document.getElementById('container').style.display = 'none';
+            document.getElementById('main').style.display = 'block';
+            
+            // 初始化情书动画
+            startHeartAnimation();
+        }
+
+        function startMoving() {
+            timerId = setInterval(() => {
+                let maxX = window.innerWidth - changeBtn.offsetWidth - 800;
+                let maxY = window.innerHeight - changeBtn.offsetHeight - 600;
+                let newX = Math.random() * maxX;
+                let newY = Math.random() * maxY;
+                changeBtn.style.left = `${newX}px`;
+                changeBtn.style.top = `${newY}px`;
+            }, 200);
+        }
+
+        // 创建心形动画 - 优化版
+        function createHeartAnimation(isLowPerformance) {
+            const heartCount = isLowPerformance ? 15 : 40;
+            const interval = isLowPerformance ? 250 : 150;
+            
+            for (let i = 0; i < heartCount; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    heart.className = 'heart';
+                    heart.style.left = Math.random() * 100 + 'vw';
+                    heart.style.animationDuration = (Math.random() * 3 + 3) + 's';
+                    heart.style.animationDelay = (Math.random() * 5) + 's';
+                    effectsContainer.appendChild(heart);
+                    
+                    setTimeout(() => heart.remove(), 8000);
+                }, i * interval);
+            }
+        }
+
+        // 创建烟花效果 - 优化版
+        function createFireworks(isLowPerformance) {
+            // 根据网络和设备性能调整烟花数量和复杂度
+            const normalFireworkCount = isLowPerformance ? 10 : 25;
+            const particleCount = isLowPerformance ? 15 : 30;
+            const specialParticleCount = isLowPerformance ? 30 : 60;
+            
+            // 先创建普通烟花
+            for (let i = 0; i < normalFireworkCount; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    const x = Math.random() * 80 + 10;
+                    const y = Math.random() * 50 + 10;
+                    firework.style.left = x + 'vw';
+                    firework.style.top = y + 'vh';
+                    
+                    const colors = ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    firework.style.setProperty('--firework-color', color);
+                    
+                    const size = Math.random() * 10 + 10;
+                    firework.style.width = `${size}px`;
+                    firework.style.height = `${size}px`;
+                    
+                    effectsContainer.appendChild(firework);
+                    
+                    setTimeout(() => {
+                        for (let j = 0; j < particleCount; j++) {
+                            const particle = document.createElement('div');
+                            particle.className = 'particle';
+                            particle.style.left = x + 'vw';
+                            particle.style.top = y + 'vh';
+                            particle.style.setProperty('--angle', j * (360/particleCount) + 'deg');
+                            particle.style.setProperty('--particle-color', color);
+                            
+                            const particleSize = Math.random() * 4 + 4;
+                            particle.style.width = `${particleSize}px`;
+                            particle.style.height = `${particleSize}px`;
+                            
+                            effectsContainer.appendChild(particle);
+                            
+                            setTimeout(() => particle.remove(), 3000);
+                        }
+                        firework.remove();
+                    }, 1000);
+                }, i * 600);
+            }
+
+            // 特殊烟花的时间间隔
+            const specialFireworkInterval = isLowPerformance ? 9000 : 6000;
+            
+            // 延迟创建特殊烟花
+            setTimeout(() => {
+                createSpecialFirework(0, isLowPerformance, specialParticleCount);
+                
+                setTimeout(() => {
+                    createSpecialFirework(1, isLowPerformance, specialParticleCount);
+                    
+                    setTimeout(() => {
+                        createSpecialFirework(2, isLowPerformance, specialParticleCount);
+                    }, specialFireworkInterval);
+                }, specialFireworkInterval);
+            }, 3000);
+        }
+        
+        // 创建特殊大烟花 - 优化版
+        function createSpecialFirework(index, isLowPerformance, particleCount) {
+            // 根据索引设置烟花位置
+            let posX, posY;
+            
+            if (index === 0) {
+                posX = '50vw';
+                posY = '40vh';
+            } else if (index === 1) {
+                posX = '30vw';
+                posY = '35vh';
+            } else {
+                posX = '70vw';
+                posY = '35vh';
+            }
+            
+            const firework = document.createElement('div');
+            firework.className = 'firework special-firework';
+            firework.style.left = posX;
+            firework.style.top = posY;
+            firework.style.width = '20px';
+            firework.style.height = '20px';
+            
+            const colors = ['#ff5a8e', '#ff9500', '#00ff95', '#5a8eff'];
+            const color = colors[index % colors.length];
+            firework.style.backgroundColor = color;
+            firework.style.boxShadow = `0 0 20px ${color}, 0 0 40px ${color}`;
+            
+            effectsContainer.appendChild(firework);
+            
+            // 低带宽情况下不播放音频
+            if (!isLowPerformance) {
+                // 延迟加载音效
+                const specialSound = new Audio();
+                specialSound.volume = 0.5;
+                specialSound.src = './imgs/firework_sound.mp3';
+                specialSound.play().catch(e => console.log('音效播放失败:', e));
+            }
+            
+            setTimeout(() => {
+                firework.remove();
+                
+                const flash = document.createElement('div');
+                flash.className = 'flash';
+                flash.style.backgroundColor = `rgba(255, 255, 255, 0.6)`;
+                effectsContainer.appendChild(flash);
+                
+                const messageContainer = document.createElement('div');
+                messageContainer.className = 'message-container';
+                
+                const messages = [
+                    ['余生很长，请多指教', '执子之手，与子偕老', '你是我今生最美的相遇', '愿有岁月可回首，且以深情共白头'],
+                    ['心有所属，感谢相遇', '愿执子之手，与子偕老', '你是我最好的礼物', '遇见你，是我最美丽的意外'],
+                    ['人生很短，遇见你很幸运', '我要的不多，只要你', '愿陪你走过四季，赏尽春花秋月', '往后余生，请多指教']
+                ];
+                
+                const selectedMessages = messages[index % messages.length];
+                const randomMessage = selectedMessages[Math.floor(Math.random() * selectedMessages.length)];
+                
+                messageContainer.textContent = randomMessage;
+                messageContainer.style.color = color;
+                messageContainer.style.textShadow = `0 0 10px ${color}`;
+                messageContainer.style.left = posX;
+                messageContainer.style.top = posY;
+                effectsContainer.appendChild(messageContainer);
+                
+                // 创建粒子效果
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'special-particle';
+                    particle.style.left = posX;
+                    particle.style.top = posY;
+                    
+                    const angle = (i * (360/particleCount)) + Math.random() * 5;
+                    const distance = 150 + Math.random() * 50;
+                    
+                    const particleColors = [color, '#ffffff', '#ffff00', '#ff00ff'];
+                    const particleColor = particleColors[Math.floor(Math.random() * particleColors.length)];
+                    particle.style.backgroundColor = particleColor;
+                    
+                    const size = Math.random() * 6 + 6;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    
+                    particle.style.setProperty('--angle', angle + 'deg');
+                    particle.style.setProperty('--distance', distance + 'px');
+                    
+                    effectsContainer.appendChild(particle);
+                }
+                
+                setTimeout(() => {
+                    messageContainer.style.opacity = '0';
+                    setTimeout(() => messageContainer.remove(), 1000);
+                }, 4000);
+                
+                flash.remove();
+            }, 1200);
+        }
+
+        // 切换音乐播放状态
+        function toggleMusic() {
+            if (musicPlaying) {
+                bgMusic.pause();
+                musicIcon.textContent = '🔇';
+            } else {
+                if (bgMusic.muted) {
+                    bgMusic.muted = false;
+                }
+                bgMusic.play().catch(e => console.log('音频播放失败:', e));
+                musicIcon.textContent = '🎵';
+            }
+            musicPlaying = !musicPlaying;
+        }
+    });
+    
+    // 情书动画初始化函数
+    function startHeartAnimation() {
+        var canvas = $('#canvas');
+        if (!canvas[0].getContext) {
+            $("#error").show();
+            return false;
+        }
+
+        var width = canvas.width();
+        var height = canvas.height();
+
+        canvas.attr("width", width);
+        canvas.attr("height", height);
+
+        var opts = {
+            seed: {
+                x: width / 2 - 20,
+                color: "rgb(190, 26, 37)",
+                scale: 2
+            },
+            branch: [
+                [535, 680, 570, 250, 500, 200, 30, 100, [
+                    [540, 500, 455, 417, 340, 400, 13, 100, [
+                        [450, 435, 434, 430, 394, 395, 2, 40]
+                    ]],
+                    [550, 445, 600, 356, 680, 345, 12, 100, [
+                        [578, 400, 648, 409, 661, 426, 3, 80]
+                    ]],
+                    [539, 281, 537, 248, 534, 217, 3, 40],
+                    [546, 397, 413, 247, 328, 244, 9, 80, [
+                        [427, 286, 383, 253, 371, 205, 2, 40],
+                        [498, 345, 435, 315, 395, 330, 4, 60]
+                    ]],
+                    [546, 357, 608, 252, 678, 221, 6, 100, [
+                        [590, 293, 646, 277, 648, 271, 2, 80]
+                    ]]
+                ]]
+            ],
+            bloom: {
+                num: 700,
+                width: 1080,
+                height: 650,
+            },
+            footer: {
+                width: 1200,
+                height: 5,
+                speed: 10,
+            }
+        }
+
+        var tree = new Tree(canvas[0], width, height, opts);
+        var seed = tree.seed;
+        var foot = tree.footer;
+        var hold = 1;
+
+        canvas.off("click").off("mousemove");
+        canvas.click(function (e) {
+            var offset = canvas.offset(), x, y;
+            x = e.pageX - offset.left;
+            y = e.pageY - offset.top;
+            if (seed.hover(x, y)) {
+                hold = 0;
+                canvas.unbind("click");
+                canvas.unbind("mousemove");
+                canvas.removeClass('hand');
+            }
+        }).mousemove(function (e) {
+            var offset = canvas.offset(), x, y;
+            x = e.pageX - offset.left;
+            y = e.pageY - offset.top;
+            canvas.toggleClass('hand', seed.hover(x, y));
+        });
+
+        var seedAnimate = eval(Jscex.compile("async", function () {
+            seed.draw();
+            while (hold) {
+                $await(Jscex.Async.sleep(10));
+            }
+            while (seed.canScale()) {
+                seed.scale(0.95);
+                $await(Jscex.Async.sleep(10));
+            }
+            while (seed.canMove()) {
+                seed.move(0, 2);
+                foot.draw();
+                $await(Jscex.Async.sleep(10));
+            }
+        }));
+
+        var growAnimate = eval(Jscex.compile("async", function () {
+            do {
+                tree.grow();
+                $await(Jscex.Async.sleep(10));
+            } while (tree.canGrow());
+        }));
+
+        var flowAnimate = eval(Jscex.compile("async", function () {
+            do {
+                tree.flower(2);
+                $await(Jscex.Async.sleep(10));
+            } while (tree.canFlower());
+        }));
+
+        var moveAnimate = eval(Jscex.compile("async", function () {
+            tree.snapshot("p1", 240, 0, 610, 680);
+            while (tree.move("p1", 500, 0)) {
+                foot.draw();
+                $await(Jscex.Async.sleep(10));
+            }
+            foot.draw();
+            tree.snapshot("p2", 500, 0, 610, 680);
+
+            // 会有闪烁不得意这样做, (＞﹏＜)
+            canvas.parent().css("background", "url(" + tree.toDataURL('image/png') + ")");
+            canvas.css("background", "#ffc0cb");
+            $await(Jscex.Async.sleep(300));
+            canvas.css("background", "none");
+        }));
+
+        var jumpAnimate = eval(Jscex.compile("async", function () {
+            var ctx = tree.ctx;
+            while (true) {
+                tree.ctx.clearRect(0, 0, width, height);
+                tree.jump();
+                foot.draw();
+                $await(Jscex.Async.sleep(25));
+            }
+        }));
+
+        var textAnimate = eval(Jscex.compile("async", function () {
+            var together = new Date();
+            together.setFullYear(2001, 2, 25);
+            together.setHours(0);
+            together.setMinutes(0);
+            together.setSeconds(0);
+            together.setMilliseconds(0);
+
+            $("#code").show().typewriter();
+            $("#clock-box").fadeIn(500);
+            while (true) {
+                timeElapse(together);
+                $await(Jscex.Async.sleep(1000));
+            }
+        }));
+
+        var runAsync = eval(Jscex.compile("async", function () {
+            $await(seedAnimate());
+            $await(growAnimate());
+            $await(flowAnimate());
+            $await(moveAnimate());
+
+            textAnimate().start();
+
+            $await(jumpAnimate());
+        }));
+
+        runAsync().start();
+    }
+    </script>
+</body>
+</html>
